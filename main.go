@@ -1,11 +1,20 @@
+//-----------------------------------------------------------------------------
+/*
+
+XSynth
+
+*/
+//-----------------------------------------------------------------------------
+
 package main
 
 import (
 	"fmt"
-	"github.com/deadsy/libusb"
-	"github.com/deadsy/audio/pulsego"
+	"github.com/deadsy/xsynth/pulsego"
 	"math"
 )
+
+//-----------------------------------------------------------------------------
 
 const TABLE_SIZE = (2 << 16)
 const SAMPLE_RATE = 22500
@@ -59,16 +68,14 @@ func sine_wave(pa *pulsego.PulseMainLoop) {
 	}
 }
 
+//-----------------------------------------------------------------------------
+
 func main() {
 
 	init_tables()
+	midi_init()
 
-  var ctx libusb.Context
-	libusb.Init(&ctx)
-	defer libusb.Exit(ctx)
-  fmt.Printf("%+v\n", libusb.Get_Version())
-
-  pa := pulsego.NewPulseMainLoop()
+	pa := pulsego.NewPulseMainLoop()
 	defer pa.Dispose()
 	pa.Start()
 
@@ -79,5 +86,6 @@ func main() {
 	}()
 	<-done
 	close(done)
-
 }
+
+//-----------------------------------------------------------------------------
