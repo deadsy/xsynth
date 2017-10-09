@@ -83,18 +83,26 @@ func main() {
 		fmt.Printf("%s\n", err)
 	}
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 150; i++ {
 
 		if i == 5 {
 			e.Attack()
 		}
 
-		if i == 70 {
+		if i == 20 {
+			e.Attack()
+		}
+
+		if i == 63 {
+			e.Attack()
+		}
+
+		if i == 120 {
 			e.Release()
 		}
 
-		fmt.Printf("%d, %f\n", i, e.Sample())
-		//fmt.Printf("%d: %s %f\n", i, e.state, e.Sample())
+		//fmt.Printf("%d, %f\n", i, e.Sample())
+		fmt.Printf("%d: %s %f\n", i, e.state, e.Sample())
 	}
 
 }
