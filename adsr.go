@@ -8,11 +8,28 @@ Attack Decay Sustain Release Envelope
 
 package main
 
-import "errors"
+import (
+	"errors"
+	"math"
+)
 
 //-----------------------------------------------------------------------------
 
-const TRIGGER_LEVEL = 0.02
+// Example: Suppose we want an attack that goes from 0.0 to 1.0 in 0.1 seconds.
+// An exponential rise will only approach 1.0, so we pick a level slightly
+// below this to be achieved in the required time. The trigger_epsilon value
+// controls this.
+const trigger_epsilon = 0.02
+
+// Return a k value to give the exponential rise/fall in the required time.
+func get_k(t float32, rate int) float32 {
+	if t <= 0 {
+		return 1.0
+	}
+	return float32(1.0 - math.Exp(math.Log(trigger_epsilon)/(float64(t)*float64(rate))))
+}
+
+//-----------------------------------------------------------------------------
 
 type ADSRState int
 
@@ -23,6 +40,20 @@ const (
 	sustain
 	release
 )
+
+var state_txt = map[ADSRState]string{
+	idle:    "idle",
+	attack:  "attack",
+	decay:   "decay",
+	sustain: "sustain",
+	release: "release",
+}
+
+func (x ADSRState) String() string {
+	return state_txt[x]
+}
+
+//-----------------------------------------------------------------------------
 
 type ADSR struct {
 	s         float32   // sustain level
@@ -59,15 +90,21 @@ func NewADSR(
 	}
 
 	e.s = s
-	e.d_trigger = 1.0 - TRIGGER_LEVEL
-	e.s_trigger = e.s + (1.0-e.s)*TRIGGER_LEVEL
-	e.i_trigger = e.s * TRIGGER_LEVEL
+	e.ka = get_k(a, rate)
+	e.kd = get_k(d, rate)
+	e.kr = get_k(r, rate)
+
+	e.d_trigger = 1.0 - trigger_epsilon
+	e.s_trigger = e.s + (1.0-e.s)*trigger_epsilon
+	e.i_trigger = e.s * trigger_epsilon
 
 	return e, nil
 }
 
+//-----------------------------------------------------------------------------
+
 // Enter attack state.
-func (e *ADSR) Start() {
+func (e *ADSR) Attack() {
 	e.state = attack
 }
 
@@ -78,14 +115,16 @@ func (e *ADSR) Release() {
 	}
 }
 
-// Rest to idle.
-func (e *ADSR) Stop() {
+// Reset to idle.
+func (e *ADSR) Idle() {
 	e.val = 0
 	e.state = idle
 }
 
-func (e *ADSR) Sample() float32 {
+//-----------------------------------------------------------------------------
 
+// Return a sample value for the ADSR envelope.
+func (e *ADSR) Sample() float32 {
 	switch e.state {
 	case idle:
 		// idle - do nothing
@@ -118,7 +157,6 @@ func (e *ADSR) Sample() float32 {
 	default:
 		panic("bad adsr state")
 	}
-
 	return e.val
 }
 

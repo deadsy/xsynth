@@ -57,7 +57,7 @@ func sine_wave(pa *pulsego.PulseMainLoop) {
 
 //-----------------------------------------------------------------------------
 
-func main() {
+func main2() {
 
 	midi_init()
 
@@ -72,6 +72,31 @@ func main() {
 	}()
 	<-done
 	close(done)
+}
+
+//-----------------------------------------------------------------------------
+
+func main() {
+
+	e, err := NewADSR(0.01, 0.05, 0.5, 0.04, 600)
+	if err != nil {
+		fmt.Printf("%s\n", err)
+	}
+
+	for i := 0; i < 100; i++ {
+
+		if i == 5 {
+			e.Attack()
+		}
+
+		if i == 70 {
+			e.Release()
+		}
+
+		fmt.Printf("%d, %f\n", i, e.Sample())
+		//fmt.Printf("%d: %s %f\n", i, e.state, e.Sample())
+	}
+
 }
 
 //-----------------------------------------------------------------------------
