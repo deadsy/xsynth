@@ -12,6 +12,8 @@ import "errors"
 
 //-----------------------------------------------------------------------------
 
+const TRIGGER_LEVEL = 0.02
+
 type ADSRState int
 
 const (
@@ -23,16 +25,15 @@ const (
 )
 
 type ADSR struct {
-	ka    float32   // attack constant
-	na    int       // attack sample counter
-	kd    float32   // decay constant
-	nd    int       // decay sample counter
-	s     float32   // sustain level
-	kr    float32   // release constant
-	nr    int       // release sample counter
-	state ADSRState // envelope state
-	count int       // state counter
-	val   float32   // output value
+	s         float32   // sustain level
+	ka        float32   // attack constant
+	kd        float32   // decay constant
+	kr        float32   // release constant
+	d_trigger float32   // attack->decay trigger level
+	s_trigger float32   // decay->sustain trigger level
+	i_trigger float32   // release->idle trigger level
+	state     ADSRState // envelope state
+	val       float32   // output value
 }
 
 func NewADSR(
@@ -44,42 +45,43 @@ func NewADSR(
 ) (*ADSR, error) {
 	e := &ADSR{}
 
-	// sustain level
-	if s < 0 || s > 1.0 {
-		return nil, errors.New("bad sustain value")
-	}
-	e.s = s
-
 	if a < 0 {
-		return nil, errors.New("bad attack value")
+		return nil, errors.New("bad attack time")
 	}
-	e.na = int(a * float32(rate))
-
 	if d < 0 {
-		return nil, errors.New("bad decay value")
+		return nil, errors.New("bad decay time")
 	}
-	e.nd = int(d * float32(rate))
-
+	if s < 0 || s > 1.0 {
+		return nil, errors.New("bad sustain level")
+	}
 	if r < 0 {
-		return nil, errors.New("bad release value")
+		return nil, errors.New("bad release time")
 	}
-	e.nr = int(r * float32(rate))
+
+	e.s = s
+	e.d_trigger = 1.0 - TRIGGER_LEVEL
+	e.s_trigger = e.s + (1.0-e.s)*TRIGGER_LEVEL
+	e.i_trigger = e.s * TRIGGER_LEVEL
 
 	return e, nil
 }
 
-func (e *ADSR) Reset() {
-	e.val = 0
-	e.count = 0
-	e.state = idle
-}
-
+// Enter attack state.
 func (e *ADSR) Start() {
 	e.state = attack
 }
 
+// Enter release state.
+func (e *ADSR) Release() {
+	if e.state != idle {
+		e.state = release
+	}
+}
+
+// Rest to idle.
 func (e *ADSR) Stop() {
-	e.state = release
+	e.val = 0
+	e.state = idle
 }
 
 func (e *ADSR) Sample() float32 {
@@ -88,36 +90,30 @@ func (e *ADSR) Sample() float32 {
 	case idle:
 		// idle - do nothing
 	case attack:
-		// attack exponentially until 1.0
-		e.count += 1
-		if e.count > e.na {
-			e.val = 1.0
-			e.count = 0
-			e.state = decay
-		} else {
+		// attack until 1.0 level
+		if e.val < e.d_trigger {
 			e.val += e.ka * (1.0 - e.val)
+		} else {
+			e.val = 1
+			e.state = decay
 		}
 	case decay:
-		// decay exponentially until sustain
-		e.count += 1
-		if e.count > e.nd {
-			e.val = e.s
-			e.count = 0
-			e.state = sustain
-		} else {
+		// decay until sustain level
+		if e.val > e.s_trigger {
 			e.val += e.kd * (e.s - e.val)
+		} else {
+			e.val = e.s
+			e.state = sustain
 		}
 	case sustain:
 		// sustain - do nothing
 	case release:
-		// release exponentially until 0.0
-		e.count += 1
-		if e.count > e.nr {
-			e.val = 0
-			e.count = 0
-			e.state = idle
-		} else {
+		// release until idle level
+		if e.val > e.i_trigger {
 			e.val += e.kr * (0.0 - e.val)
+		} else {
+			e.val = 0
+			e.state = idle
 		}
 	default:
 		panic("bad adsr state")
