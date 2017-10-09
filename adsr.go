@@ -19,7 +19,7 @@ import (
 // An exponential rise will only approach 1.0, so we pick a level slightly
 // below this to be achieved in the required time. The trigger_epsilon value
 // controls this.
-const trigger_epsilon = 0.02
+const trigger_epsilon = 0.01
 
 // Return a k value to give the exponential rise/fall in the required time.
 func get_k(t float32, rate int) float32 {
