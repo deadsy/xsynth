@@ -78,30 +78,22 @@ func main2() {
 
 func main() {
 
-	e, err := NewADSR(0.01, 0.05, 0.5, 0.04, 600)
+	e, err := NewADSR_Envelope(0.04, 0.05, 0.5, 0.04, 600)
+	//e, err := NewAD_Envelope(0.04, 0.05, 600)
 	if err != nil {
 		fmt.Printf("%s\n", err)
 	}
 
-	for i := 0; i < 150; i++ {
+	for i := 0; i < 200; i++ {
 
 		if i == 5 {
 			e.Attack()
 		}
 
-		if i == 20 {
-			e.Attack()
-		}
-
-		if i == 63 {
-			e.Attack()
-		}
-
-		if i == 120 {
+		if i == 100 {
 			e.Release()
 		}
 
-		//fmt.Printf("%d, %f\n", i, e.Sample())
 		fmt.Printf("%d: %s %f\n", i, e.state, e.Sample())
 	}
 
