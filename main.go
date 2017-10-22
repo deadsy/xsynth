@@ -16,7 +16,7 @@ import (
 
 //-----------------------------------------------------------------------------
 
-const SAMPLE_RATE = 22500
+const SAMPLE_RATE = 44100
 
 //-----------------------------------------------------------------------------
 
@@ -39,16 +39,17 @@ func sine_wave(pa *pulsego.PulseMainLoop) {
 
 	samples := make([]float32, 64)
 	amp := float32(0.1)
-	t0 := NewLUT_Sine(261.63, SAMPLE_RATE)
-	t1 := NewLUT_Sine(329.63, SAMPLE_RATE)
-	t2 := NewLUT_Sine(392.00, SAMPLE_RATE)
+	chord := major_chord(60)
+	t0 := NewLUT_Sine(midi_to_frequency(chord[0]), SAMPLE_RATE)
+	t1 := NewLUT_Sine(midi_to_frequency(chord[1]), SAMPLE_RATE)
+	t2 := NewLUT_Sine(midi_to_frequency(chord[2]), SAMPLE_RATE)
 
 	//t := NewLUT_Sawtooth(440.0, SAMPLE_RATE)
 	//t := NewLUT_Square(440.0, SAMPLE_RATE)
 
 	for {
 		for i, _ := range samples {
-			y := t0.Sample() + t1.Sample()*t2.Sample()
+			y := t0.Sample() + t1.Sample() + t2.Sample()
 			samples[i] = y * amp
 		}
 		st.Write(samples, pulsego.SEEK_RELATIVE)
@@ -57,7 +58,7 @@ func sine_wave(pa *pulsego.PulseMainLoop) {
 
 //-----------------------------------------------------------------------------
 
-func main2() {
+func main() {
 
 	midi_init()
 
@@ -76,7 +77,7 @@ func main2() {
 
 //-----------------------------------------------------------------------------
 
-func main() {
+func mainx() {
 
 	e, err := NewADSR_Envelope(0.04, 0.05, 0.5, 0.04, 600)
 	//e, err := NewAD_Envelope(0.04, 0.05, 600)
